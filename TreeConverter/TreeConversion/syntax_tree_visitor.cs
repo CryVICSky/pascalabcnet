@@ -9167,7 +9167,7 @@ namespace PascalABCCompiler.TreeConverter
                     }
                 case motivation.expression_evaluation:
                     {
-                        if (can_convert_to_method_call(si))
+                        if (can_convert_to_method_call(ref si))
                         {
                             //dot_node dnode = new dot_node(syntax_node, template_id_right);
                             template_id_right.name = new dot_node(syntax_node, id_right);
@@ -9210,7 +9210,7 @@ namespace PascalABCCompiler.TreeConverter
                     }
                 case motivation.expression_evaluation:
                     {
-                        if (can_convert_to_method_call(si))
+                        if (can_convert_to_method_call(ref si))
                         {
                             dot_node dnode = new dot_node(syntax_node, id_right);
                             method_call mc = new method_call(dnode, new expression_list());
@@ -9296,15 +9296,16 @@ namespace PascalABCCompiler.TreeConverter
             throw new CompilerInternalError("Invalid left dot node kind");
         }
 
-        private bool can_convert_to_method_call(SymbolInfo si)
+        private bool can_convert_to_method_call(ref SymbolInfo si)
         {
-            while (si != null)
+            SymbolInfo tmp_si = si;
+            while (tmp_si != null)
             {
-                if (si.sym_info is function_node && (si.sym_info as function_node).is_extension_method && !has_property(ref si)
-                           || si.sym_info is common_method_node && (si.sym_info as common_method_node).is_constructor
-                           || si.sym_info is compiled_constructor_node)
+                if (tmp_si.sym_info is function_node && (tmp_si.sym_info as function_node).is_extension_method && !has_property(ref si)
+                           || tmp_si.sym_info is common_method_node && (tmp_si.sym_info as common_method_node).is_constructor
+                           || tmp_si.sym_info is compiled_constructor_node)
                     return true;
-                si = si.Next;
+                tmp_si = tmp_si.Next;
             }
             return false;
         }
@@ -14905,11 +14906,11 @@ namespace PascalABCCompiler.TreeConverter
                     CheckForCircuralInRecord(tn, get_location(_var_def_statement.vars_type));
                 if (_var_def_statement.inital_value != null)
                 	if (is_event) AddError(new NotSupportedError(get_location(_var_def_statement.inital_value)));
-                else
-                {
-                	_var_def_statement.inital_value = get_possible_array_const(_var_def_statement.inital_value,tn);
-                	inital_value = convert_strong_to_constant_or_function_call_for_varinit(convert_strong(_var_def_statement.inital_value), tn);
-                }
+                    else
+                    {
+                	    _var_def_statement.inital_value = get_possible_array_const(_var_def_statement.inital_value,tn);
+                	    inital_value = convert_strong_to_constant_or_function_call_for_varinit(convert_strong(_var_def_statement.inital_value), tn);
+                    }
             }
             else
             {
@@ -19373,9 +19374,11 @@ namespace PascalABCCompiler.TreeConverter
 
         public override void visit(SyntaxTree.semantic_check_sugared_statement_node st)
         {
-            if (st.stat is SyntaxTree.assign_tuple)
+            if (st.typ as System.Type == typeof(SyntaxTree.assign_tuple))
             {
-                semantic_check_assign_tuple(st.stat as SyntaxTree.assign_tuple);
+                var vars = st.lst[0] as SyntaxTree.addressed_value_list;
+                var expr = st.lst[1] as SyntaxTree.expression;
+                semantic_check_assign_tuple(vars,expr);
             }
             else 
             {
